@@ -1,3 +1,8 @@
+# Customs
+.DS_Store
+.idea/
+cmake*
+
 # Prerequisites
 *.d
 
