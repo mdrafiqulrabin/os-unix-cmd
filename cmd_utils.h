@@ -53,6 +53,27 @@ void execute_builtin_exit() {
     exit(0); // 0: safe exit
 }
 
+void showBackgroundProcesses() {
+    int status;
+    for (int i = 0; i < m_process_id.size(); ++i) {
+        if (waitpid(m_process_id[i], &status, WNOHANG) == 0) { // WNOHANG: non-blocking, return immediately
+            cout << "[" << m_process_id[i] << "] \t" << m_process_name[i] << endl;
+        }
+    }
+}
+
+void cleanupBackgroundProcesses() {
+    if (!m_process_id.empty()) {
+        int status;
+        for (int i = m_process_id.size() - 1; i >= 0; i--) { // WNOHANG: non-blocking, return immediately
+            if (waitpid(m_process_id[i], &status, WNOHANG) != 0) {
+                m_process_id.erase(m_process_id.begin() + i );
+                m_process_name.erase(m_process_name.begin() + i );
+            }
+        }
+    }
+}
+
 bool apply_built_in() {
     string cmd = getLowerCaseStr(m_command.front());
     if (cmd == "cd") {
@@ -61,6 +82,9 @@ bool apply_built_in() {
     } else if (cmd == "exit") {
         execute_builtin_exit();
         return false;
+    } else if (cmd == "processes") {
+        showBackgroundProcesses();
+        return true;
     } else {
         return false;
     }

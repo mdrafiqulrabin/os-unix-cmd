@@ -10,10 +10,14 @@ using namespace std;
 vector<string> io_input;
 vector<string> io_output;
 
+bool non_interactive_bg = false;
+
 void initialize_parameters() {
     m_command.clear();
     io_input.clear();
     io_output.clear();
+    cleanupBackgroundProcesses();
+    non_interactive_bg = false;
 }
 
 void checkIOBuffer(string buffer, int check_io) {
@@ -40,6 +44,10 @@ void parse_input_line(string cmd_user_input) {
             case '\t': {
                 if (buffer.size() == 0) {
                     //do nothing
+                } else if (buffer == "background") {
+                    //ignore background
+                    non_interactive_bg = true;
+                    buffer = "";
                 } else {
                     checkIOBuffer(buffer, check_io);
                     check_io = 0;
@@ -76,6 +84,17 @@ void parse_input_line(string cmd_user_input) {
     check_io = 0;
 }
 
+string getProcessNameWithoutBgSpace() {
+    string remove_bg_space = "";
+    for (size_t i = 0; i != m_command.size(); ++i) {
+        if (i > 0) {
+            remove_bg_space += " ";
+        }
+        remove_bg_space += string(&m_command[i][0]);
+    }
+    return remove_bg_space;
+}
+
 void execute(string cmd_full_path) {
     pid_t kidpid;
 
@@ -110,8 +129,16 @@ void execute(string cmd_full_path) {
             _exit(0); //EXIT_SUCCESS
         }
     } else { /*parent process*/
-        // parent waits for child
-        while (wait(0) != kidpid);
+        if (non_interactive_bg) {
+            // no waits for background process
+            string pname = getProcessNameWithoutBgSpace();
+            m_process_id.push_back(kidpid);
+            m_process_name.push_back(pname);
+            non_interactive_bg = false;
+        } else {
+            // parent waits for child
+            while (wait(0) != kidpid);
+        }
     }
 }
 
